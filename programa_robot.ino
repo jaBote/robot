@@ -3,7 +3,7 @@
 /////////////////////////
 #include <Servo.h>
 #include <SoftwareSerial.h>
-//Modificacion
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // Constants - Define pins
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -30,22 +30,24 @@
 #define DIR_UP 0
 #define DIR_DOWN 1
 
-const int dir_cajas;
-long distandel;          // ultrasonic sensor variable
-long tiempo1;             // ultrasonic sensor variable
-long distantra;          // ultrasonic sensor variable
-long tiempo2;             // ultrasonic sensor variable
-int izquierda;
-int derecha;
-long obstaculo=20; //pendiente de ajuste (cm)
-int variacion=10; //pendiente de ajustar (grados)
-int grados=90;       // Se inicializa en el programa [jaBote]
-int ya=1;
  
 /////////////////////////////////////////////////////////////////////////////////////////
 // Global Variables and Objects
 /////////////////////////////////////////////////////////////////////////////////////////
 Servo servo;  // create servo object to control a servo
+
+
+const int dir_cajas;
+long distandel;        // ultrasonic sensor variable
+long tiempo1;          // ultrasonic sensor variable
+long distantra;        // ultrasonic sensor variable
+long tiempo2;          // ultrasonic sensor variable
+int izquierda;
+int derecha;
+long obstaculo=20;    //pendiente de ajuste (cm)
+int variacion=10;     //pendiente de ajustar (grados)
+int grados=90;        // Se inicializa en el programa [jaBote]
+int ya=1;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Functions Headers
@@ -277,7 +279,7 @@ void traccionTrasera(int velocidad, int sentido, int tiempo){
 }
 
 
-/*void elevarCarretilla(int velocidad, int sentido, int tiempo){
+void elevarCarretilla(int velocidad, int sentido, int tiempo){
   
   if(sentido==DIR_DOWN){  
    //Preparamos la salida para que el motor gire en un sentido
@@ -300,7 +302,7 @@ void traccionTrasera(int velocidad, int sentido, int tiempo){
   }
   
 }
-*/
+
 void direccionDelantera(int posicion, int tiempo){
    // Comprobar si el valor de la posicion dada está entre 0 y 180 grados
    if ((posicion>=0) && (posicion<=180)) {
