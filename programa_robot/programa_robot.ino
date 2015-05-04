@@ -7,21 +7,21 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 // Constants - Define pins
 /////////////////////////////////////////////////////////////////////////////////////////
-#define IN1 4    // Input3 conectada al pin 4
+#define IN1 4     // Input3 conectada al pin 4
 #define IN2 12    // Input4 conectada al pin 12
 #define ENA  3    // ENA conectada al pin 3 de Arduino
 
-#define IN3 7    // Input3 conectada al pin 7
-#define IN4 8    // Input4 conectada al pin 8 
-#define ENB 6    // ENB conectada al pin 6 de Arduino
+#define IN3 7     // Input3 conectada al pin 7
+#define IN4 8     // Input4 conectada al pin 8 
+#define ENB 6     // ENB conectada al pin 6 de Arduino
 
-#define TRIG_DEL 11   // Trigger a wave     - Output Pin
-#define ECHO_DEL 9    // Receive a echo     - Input Pin  
+#define TRIG_DEL 11    // Trigger a wave     - Output Pin
+#define ECHO_DEL 9     // Receive a echo     - Input Pin  
 
 #define TRIG_TRAS 10   // Trigger a wave    - Output Pin
 #define ECHO_TRAS 2    // Receive a echo     - Input Pin 
 
-#define FOTO_IZQ 13  // Fotorreceptores
+#define FOTO_IZQ 13    // Fotorreceptores
 #define FOTO_DER 0
 
 #define DIR_DEL 0
@@ -30,8 +30,10 @@
 #define DIR_UP 0
 #define DIR_DOWN 1
 
-#define ANGULO_MIN 55
-#define ANGULO_MAX 135
+#define ANGULO_MIN 55      //Límite aceptable entorno a 70-75 (con peso)
+#define ANGULO_MAX 135     //Límite aceptable entorno a 110-120 (con peso)
+
+#define SENSOR_PRESION 0   // Pin del sensor de presión -> Entrada analógica 
 
 const int dist_cajas = 5;  // Distancia mínima para poder coger la caja con el toro. Pendiente de ajuste
  
@@ -42,7 +44,7 @@ Servo servo;  // create servo object to control a servo
 
 long obstaculo = 20;    // Distancia mínima a obstáculo para comenzar a frenar (cm). Pendiente de ajuste.
 int variacion = 10;     // Grados de corrección del servo cuando se sale de la línea (º). Rendiente de ajuste
-int servo_pos;             // Posición del servo. Se inicializa en el programa a 90º
+int servo_pos;          // Posición del servo. Se inicializa en el programa a 90º
 int flag;               // Flag de posicionamiento en el bucle. Se inicializa en el programa a 1
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -51,10 +53,11 @@ int flag;               // Flag de posicionamiento en el bucle. Se inicializa en
 void traccion(int velocidad, int sentido, int tiempo);
 void carretilla(int velocidad, int sentido, int tiempo);
 void direccion(int posicion, int tiempo);
+int limitar(int valor, int min, int max);
+void redirecciona();
 int dist_del();
 int dist_tras();
-void redirecciona();
-int limitar(int valor, int min, int max);
+int pesoCaja();
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -295,8 +298,8 @@ void carretilla(int velocidad, int sentido, int tiempo) {
 * @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
 **/
 void direccion(int posicion, int tiempo){
-	// Comprobar si el valor de la posicion dada está entre 70 y 120 grados
-	if((posicion >= 70) && (posicion <= 120)) {
+	// Comprobar si el valor de la posicion dada está entre ANGULO_MIN y ANGULO_MAX
+	if((posicion >= ANGULO_MIN) && (posicion <= ANGULO_MAX)) {
 		servo.write(posicion);
 	}
 
@@ -377,3 +380,19 @@ int limitar(int valor, int min, int max) {
 	return valor;
 }
 
+/**
+* Devuelve un entero comprendido entre 0-255 según el peso detectado
+* por la entrada analógica que detecta entre 0 y 1023
+* @return el valor del peso reescalado
+**/
+int pesoCaja(){ 
+   int peso, pesoRedimensionado;
+   
+   //Devolvemos el valor comprendido entre 0-1023
+   peso = analogRead(SENSOR_PRESION);
+ 
+   //Si queremos redimensioanr los valores entre 0 y 255
+   pesoRedimensionado = map(peso, 0, 1023, 0, 255);
+ 
+ return pesoRedimensionado; 
+}
