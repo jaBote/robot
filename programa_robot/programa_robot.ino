@@ -30,37 +30,36 @@
 #define DIR_UP 0
 #define DIR_DOWN 1
 
-const int dist_cajas;  // Needs a value! [jaBote]
+#define ANGULO_MIN 55
+#define ANGULO_MAX 135
+
+const int dist_cajas = 5;  // Distancia mínima para poder coger la caja con el toro. Pendiente de ajuste
  
 /////////////////////////////////////////////////////////////////////////////////////////
 // Global Variables and Objects
 /////////////////////////////////////////////////////////////////////////////////////////
 Servo servo;  // create servo object to control a servo
 
-long dist_del;        // ultrasonic sensor variable
-long tiempo_del;          // ultrasonic sensor variable
-long dist_tras;        // ultrasonic sensor variable
-long tiempo_tras;          // ultrasonic sensor variable
-
 long obstaculo = 20;    // Distancia mínima a obstáculo para comenzar a frenar (cm). Pendiente de ajuste.
 int variacion = 10;     // Grados de corrección del servo cuando se sale de la línea (º). Rendiente de ajuste
-int grados;        // Se inicializa en el programa a 90º
-int flag;      // Flag de posicionamiento en el bucle. Se inicializa en el programa a 1
+int servo_pos;             // Posición del servo. Se inicializa en el programa a 90º
+int flag;               // Flag de posicionamiento en el bucle. Se inicializa en el programa a 1
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Function Headers
 ////////////////////////////////////////////////////////////////////////////////////////
 void traccion(int velocidad, int sentido, int tiempo);
-void carretilla(int velocidad, int sentido, int tiempo, int nivel);
+void carretilla(int velocidad, int sentido, int tiempo);
 void direccion(int posicion, int tiempo);
-void leerDistanciadelantera();
-void leerDistanciatrasera();
+int dist_del();
+int dist_tras();
 void redirecciona();
+int limitar(int valor, int min, int max);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 void setup() {
-	// inicia el protocolo de comunicación a PC para debuggear
+	// Iniciar el protocolo de comunicación a PC para debugear
 	Serial.begin(9600);
 
 	pinMode (ENB, OUTPUT); 
@@ -80,57 +79,58 @@ void setup() {
 
 	pinMode(FOTO_IZQ,INPUT);
 	pinMode (FOTO_DER,INPUT);
+	
+	delay(1500); // Esperamos para que se estabilice el circuito y arrancar el código
 }
 
 void loop(){
 	// CICLO 1
 	//----------------------------------------------------
 	// Inicialización para cada ciclo
-	grados = 90;
+	servo_pos = 90;
+	// ¿Necesitamos inicializar la carretilla a alguna posición para evitar problemas más tarde? [jaBote]
 	flag = 1;
 	
 	// Pasos a seguir:
 	// 1. Estamos en el punto 1
-	delay(2000); // Esperamos 2 segundos antes de arrancar el código
+	delay(500); 
 
 	// 2. Motor a 90º
-	direccion(90, 0);   // Ponemos las ruedas a 90º
+	direccion(90, 0); // Ponemos las ruedas a 90º
 
 	// 3.Seguidor de linea 1
-	leerDistanciadelantera();   // lee distancia
-
-	if(dist_del > obstaculo) { // mientras que la distancia sea menor que obstaculo
+	
+	// Arrancar el motor si no hay obstáculos
+	if(dist_del() > obstaculo) { // mientras que la distancia sea menor que obstaculo
 		traccion(255, DIR_DEL, 0);
 		delay(2000);
 	}
 	
-	leerDistanciadelantera();   // lee distancia
-	
-	// Seguidor
-	while(dist_del > obstaculo) { // mientras que la distancia sea menor que obstaculo
-		traccion(210,DIR_DEL, 0); // avanza 0.5 segundos hacia delante
+	// Seguir línea
+	while(dist_del() > obstaculo) { // mientras que la distancia sea menor que obstaculo
+		traccion(210, DIR_DEL, 0);
 		if (digitalRead(FOTO_IZQ) == 0) { // 1 es negro y 0 es blanco.
-			grados = (grados - variacion);
-			if(grados < 55) {
-				grados = 55;
-			}
-			servo.write(grados);
-			delay(1500);
-			}
-		if (digitalRead(FOTO_DER) == 0) { //
-			grados = (grados + variacion);
-			if(grados > 135) {
-				grados = 135;
-				}
-			servo.write(grados);
-			delay(1500);
+			servo_pos -= variacion;
 		}
-		leerDistanciadelantera(); // lee distancia
-		// delay(100);
+		else if (digitalRead(FOTO_DER) == 0) { //
+			servo_pos += variacion;
+		}
+		else if (digitalRead(FOTO_IZQ) == digitalRead(FOTO_DER) == 1) {
+			// Si el robot está sobre negro restaurar la posición a 90
+			servo_pos = 90;
+		}
+		limitar(servo_pos, ANGULO_MIN, ANGULO_MAX);
+		servo.write(servo_pos);
+		delay(1500); // ¿Este delay puede ser el responsable de hacernos chocar contra los obstáculos? ¿Reducir? [jaBote]
+		// delay(100); // Esto estaba aquí. Yo lo dejo...
 	}
 	traccion(0, DIR_DEL, 0); // Frenar
 
 	// Desde aquí nada ha sido probado, solo restructurado [jaBote]
+	// Los while de adelante son muy optimizables y la variable flag prescindible
+	// pero paso de optimizarlos hasta comprobar que funcionan. [jaBote]
+	
+	
 	// Detectamos cajas (Punto A)  //hasta aquí esta hecho
 	// 4.Pala en posición A1 (verde)
 	while(flag == 1) {
@@ -147,10 +147,8 @@ void loop(){
 	
 	// 5.Avanzamos lo suficiente para poder subir la caja, distancia x
 	direccion(90,0);   // ponemos las ruedas rectas (90º)
-	leerDistanciadelantera();   // lee distancia
-	while(dist_del > dist_cajas) { // mientras que la distancia sea menor que distancia de cajas
+	while(dist_del() > dist_cajas) { // mientras que la distancia sea menor que distancia de cajas
 		traccion(255, DIR_DEL, 0);
-		leerDistanciadelantera();
 	}
 	// 6. Subimos la caja hasta la posición A0 (lila)
 	while(flag == 2) {
@@ -170,10 +168,8 @@ void loop(){
 	// 8.Retrocedemos hasta que el ultrasonido trasero detecta obstáculo
 
 	direccion(90, 0);   //ponemos las ruedas rectas (90º)
-	leerDistanciatrasera();   //lee distancia
-	while(dist_tras > obstaculo) { //mientras que la distancia sea menor que distancia cajas
-		traccion(255,DIR_TRAS,0);
-		leerDistanciatrasera();
+	while(dist_tras() > obstaculo) { //mientras que la distancia sea menor que distancia cajas
+		traccion(255, DIR_TRAS, 0);
 	}
 	
 	// 9.=3.Seguimos linea 2 hasta detectar cajas con ultrasonido delantero(Punto B)
@@ -237,27 +233,40 @@ void loop(){
 // RESTO DE FUNCIONES  //
 /////////////////////////
 
+/**
+* Enciende (o apaga) el motor de tracción del robot
+* @param velocidad: cantidad de tensión a enviar al motor [0,255]. 0 para parar.
+* @param sentido: sentido de giro del motor (DIR_DEL adelante, DIR_TRAS atrás)
+* @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
+**/
 void traccion(int velocidad, int sentido, int tiempo) {
-	if(sentido == DIR_TRAS){ 
+	if(sentido == DIR_TRAS) { 
 		//Preparamos la salida para que el motor gire en un sentido (hacia atrás)
 		digitalWrite (IN1, HIGH);
 		digitalWrite (IN2, LOW);
-	} else { // DIR_DEL
+	}
+	else { // DIR_DEL
 		//Preparamos la salida para que el motor gire en el otro sentido
 		digitalWrite (IN1, LOW);
 		digitalWrite (IN2, HIGH);    
 	}
 
 	// Aplicamos PWM al pin ENB
-	analogWrite(ENA,velocidad);
+	analogWrite(ENA, velocidad);
 	
 	//Comprobar si hemos dado un valor de tiempo
 	if(tiempo > 0) {
-	delay(tiempo);
-	analogWrite(ENA, 0);
+		delay(tiempo);
+		analogWrite(ENA, 0);
 	}
 }
 
+/**
+* Enciende (o apaga) el motor de la carretilla elevadora del robot
+* @param velocidad: cantidad de tensión a enviar al motor [0,255]. 0 para parar.
+* @param sentido: sentido de giro del motor (DIR_UP arriba, DIR_DOWN abajo)
+* @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
+**/
 void carretilla(int velocidad, int sentido, int tiempo) {
 	if(sentido == DIR_DOWN) {
 		//Preparamos la salida para que el motor gire en un sentido
@@ -271,7 +280,7 @@ void carretilla(int velocidad, int sentido, int tiempo) {
 	}
 
 	// Aplicamos PWM al pin ENB, haciendo girar el motor
-	analogWrite(ENB,velocidad);
+	analogWrite(ENB, velocidad);
 
 	//Comprobar si hemos dado un valor de tiempo
 	if(tiempo > 0) {
@@ -280,6 +289,11 @@ void carretilla(int velocidad, int sentido, int tiempo) {
 	}
 }
 
+/**
+* Posiciona el servo de posición en el ángulo especificado
+* @param posicion: ángulo en que posicionar el servo
+* @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
+**/
 void direccion(int posicion, int tiempo){
 	// Comprobar si el valor de la posicion dada está entre 0 y 180 grados
 	if((posicion >= 0) && (posicion <= 180)) {
@@ -292,39 +306,74 @@ void direccion(int posicion, int tiempo){
 	}
 }
 
-void leerDistanciadelantera() {
-	digitalWrite(TRIG_DEL, LOW); /* Por cuestión de estabilización del sensor */
+/**
+* Mide y obtiene un valor entero en centímetros de la distancia del robot
+* al obstáculo inmediatamente delante del mismo
+* @return valor de la distancia
+**/
+int dist_del() {
+	long tiempo;
+
+	digitalWrite(TRIG_DEL, LOW); // Por estabilización del sensor
 	delayMicroseconds(5);
-	digitalWrite(TRIG_DEL, HIGH); /* envío del pulso ultrasónico */
+	digitalWrite(TRIG_DEL, HIGH); // Envío del pulso ultrasónico
 	delayMicroseconds(10);
-	tiempo_del = pulseIn(ECHO_DEL, HIGH); /* Función para medir la longitud del pulso entrante.
+	tiempo = pulseIn(ECHO_DEL, HIGH); /* Función para medir la longitud del pulso entrante.
 	                                      Mide el tiempo que transcurrido entre el envío
 	                                      del pulso ultrasónico y cuando el sensor recibe el rebote */
-	dist_del = int(0.017*tiempo_del); /* fórmula para calcular la distancia obteniendo un valor entero */
+	return int(0.017 * tiempo); // Fórmula para calcular la distancia obteniendo un valor entero
 }
 
-void leerDistanciatrasera() {
-	digitalWrite(TRIG_TRAS,LOW); /* Por cuestión de estabilización del sensor */
+/**
+* Mide y obtiene un valor entero en centímetros de la distancia del robot
+* al obstáculo inmediatamente detrás del mismo
+* @return valor de la distancia
+**/
+int dist_tras() {
+	long tiempo;
+
+	digitalWrite(TRIG_TRAS,LOW); // Por estabilización del sensor
 	delayMicroseconds(5);
-	digitalWrite(TRIG_TRAS, HIGH); /* envío del pulso ultrasónico */
+	digitalWrite(TRIG_TRAS, HIGH); // Envío del pulso ultrasónico
 	delayMicroseconds(10);
-	tiempo_tras = pulseIn(ECHO_TRAS, HIGH); /* Función para medir la longitud del pulso entrante.
+	tiempo = pulseIn(ECHO_TRAS, HIGH); /* Función para medir la longitud del pulso entrante.
 	                                        Mide el tiempo que transcurrido entre el envío
 	                                        del pulso ultrasónico y cuando el sensor recibe el rebote */
-	dist_tras = int(0.017*tiempo_tras);     /* fórmula para calcular la distancia obteniendo un valor entero */
+	return int(0.017 * tiempo); // Fórmula para calcular la distancia obteniendo un valor entero
 }
 
+/**
+* Intenta redireccionar al robot para hacer que vuelva a la línea seguida
+* ¿Sin usar?
+**/
 void redirecciona() {
-	while(digitalRead(FOTO_IZQ) == 0) { //1 es negro 0 es blanco
-		grados = (grados-variacion); //mirar signo
-		servo.write(grados);
-	delay(1500); //tiempo para que vuelva al carril
+	while(digitalRead(FOTO_IZQ) == 0) { // 1 es negro 0 es blanco
+		servo_pos = (servo_pos - variacion); //mirar signo
+		servo.write(servo_pos);
+		delay(1500); // tiempo para que vuelva al carril
 	}
 
 	while(digitalRead(FOTO_DER) == 0) {
-		grados = (grados+variacion);
-		servo.write(grados);
+		servo_pos = (servo_pos+variacion);
+		servo.write(servo_pos);
 		delay(1500);
 	}
+}
+
+/**
+* Limita un valor entero dado entre un mínimo y un máximo
+* @param valor el valor a limitar
+* @param min el valor límite mínimo
+* @param max el valor límite máximo
+* @return el valor una vez limitado si necesario
+**/
+int limitar(int valor, int min, int max) {
+	if (valor < min) {
+		valor = min;
+	}
+	else if (valor > max) {
+		valor = max;
+	}
+	return valor;
 }
 
