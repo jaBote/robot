@@ -295,8 +295,8 @@ void carretilla(int velocidad, int sentido, int tiempo) {
 * @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
 **/
 void direccion(int posicion, int tiempo){
-	// Comprobar si el valor de la posicion dada está entre 0 y 180 grados
-	if((posicion >= 0) && (posicion <= 180)) {
+	// Comprobar si el valor de la posicion dada está entre 70 y 120 grados
+	if((posicion >= 70) && (posicion <= 120)) {
 		servo.write(posicion);
 	}
 
