@@ -7,6 +7,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 // Constants - Define pins
 /////////////////////////////////////////////////////////////////////////////////////////
+// Definición de pines
 #define IN1 4     // Input3 conectada al pin 4
 #define IN2 12    // Input4 conectada al pin 12
 #define ENA  3    // ENA conectada al pin 3 de Arduino
@@ -24,16 +25,18 @@
 #define FOTO_IZQ 13    // Fotorreceptores
 #define FOTO_DER 0
 
+// ¿Este pin no es el mismo que el del fotorreceptor derecho? [jaBote]
+#define SENSOR_PRESION 0   // Pin del sensor de presión -> Entrada analógica 
+
+// Definición de constantes
 #define DIR_DEL 0
 #define DIR_TRAS 1
 
 #define DIR_UP 0
 #define DIR_DOWN 1
 
-#define ANGULO_MIN 55      //Límite aceptable entorno a 70-75 (con peso)
-#define ANGULO_MAX 135     //Límite aceptable entorno a 110-120 (con peso)
-
-#define SENSOR_PRESION 0   // Pin del sensor de presión -> Entrada analógica 
+#define ANGULO_MIN 55      // Límite aceptable en torno a 70-75 (con peso)
+#define ANGULO_MAX 135     // Límite aceptable en torno a 110-120 (con peso)
 
 const int dist_cajas = 5;  // Distancia mínima para poder coger la caja con el toro. Pendiente de ajuste
  
