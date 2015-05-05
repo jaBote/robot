@@ -56,7 +56,6 @@ int flag;               // Flag de posicionamiento en el bucle. Se inicializa en
 void traccion(int velocidad, int sentido, int tiempo);
 void carretilla(int velocidad, int sentido, int tiempo);
 void direccion(int posicion, int tiempo);
-int limitar(int valor, int min, int max);
 void redirecciona();
 int dist_del();
 int dist_tras();
@@ -125,7 +124,7 @@ void loop(){
 			// Si el robot está sobre negro restaurar la posición a 90
 			servo_pos = 90;
 		}
-		limitar(servo_pos, ANGULO_MIN, ANGULO_MAX);
+
 		servo.write(servo_pos);
 		delay(1500); // ¿Este delay puede ser el responsable de hacernos chocar contra los obstáculos? ¿Reducir? [jaBote]
 		// delay(100); // Esto estaba aquí. Yo lo dejo...
@@ -301,6 +300,17 @@ void carretilla(int velocidad, int sentido, int tiempo) {
 * @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
 **/
 void direccion(int posicion, int tiempo){
+  
+        //Limitar la posición al ANGULO_MIN fijado
+     	if (posicion < ANGULO_MIN) {
+		posicion = ANGULO_MIN;
+	}
+
+        //Limitar la posición al ANGULO_MAX fijado
+     	if (posicion > ANGULO_MAX) {
+		posicion = ANGULO_MAX;
+	}
+  
 	// Comprobar si el valor de la posicion dada está entre ANGULO_MIN y ANGULO_MAX
 	if((posicion >= ANGULO_MIN) && (posicion <= ANGULO_MAX)) {
 		servo.write(posicion);
@@ -364,23 +374,6 @@ void redirecciona() {
 		servo.write(servo_pos);
 		delay(1500);
 	}
-}
-
-/**
-* Limita un valor entero dado entre un mínimo y un máximo
-* @param valor el valor a limitar
-* @param min el valor límite mínimo
-* @param max el valor límite máximo
-* @return el valor una vez limitado si necesario
-**/
-int limitar(int valor, int min, int max) {
-	if (valor < min) {
-		valor = min;
-	}
-	else if (valor > max) {
-		valor = max;
-	}
-	return valor;
 }
 
 /**
