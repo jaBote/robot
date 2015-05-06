@@ -295,7 +295,8 @@ void carretilla(int velocidad, int sentido, int tiempo) {
 }
 
 /**
-* Posiciona el servo de posición en el ángulo especificado
+* Posiciona el servo de posición en el ángulo especificado.
+* Limita el ángulo del servo entr ANGULO_MIN y ANGULO_MAX.
 * @param posicion: ángulo en que posicionar el servo
 * @param tiempo: si es >0 se enciende el motor y se apaga tras este tiempo
 **/
